@@ -20,7 +20,8 @@ function schedEditor(sc){
   const f = (k, label) => `<label>${label}<input type="date" data-sc="${k}" value="${esc(sc[k] || '')}"></label>`;
   return `<details class="card sced"${S.openSched ? ' open' : ''}><summary>📅 ${CLS_LABEL(S.cls)}반 일정 — 반납 ${kDate(sc.returnDate)} · 소감문 ${kDate(sc.essayDue)}</summary>
     <div class="scgrid">${f('rent', '책 대여일')}${f('s1', '1차시')}${f('s2', '2차시')}
-      ${f('sheetDue', '활동지 제출 마감')}${f('returnDate', '책 반납일')}${f('essayDue', '최종 소감문 완성일')}</div>
+      ${f('sheetDue', '활동지 제출 마감')}${WEEKS.map((w, i) => f(w, `${i + 1}주 독서 기록`)).join('')}
+      ${f('returnDate', '책 반납일')}${f('essayDue', '최종 소감문 완성일')}</div>
     <label class="chk"><input type="checkbox" data-sc="essayOpen"${sc.essayOpen ? ' checked' : ''}> 최종 소감문을 학생에게 열기</label>
     <div class="bar"><button class="btn ghost" data-act="sched-all">여섯 반 모두 이 날짜로</button>
       <button class="btn" data-act="sched-save">이 반 저장</button></div></details>`;
@@ -65,11 +66,13 @@ function vTBooks(){
 
 function vTClass(){
   if(S.tview === 'books') return vTBooks();
-  const { sc, roster, books, sheets, essays } = S.t;
+  const { sc, roster, books, sheets, essays, weeklies } = S.t;
   const ids = Object.keys(roster).filter(k => /^\d+$/.test(k)).sort();
   let n = { sheet: 0, essay: 0 };
   const rows = ids.map(num => {
-    const b = books[num], sh = sheets[num], es = essays[num];
+    const b = books[num], sh = sheets[num], es = essays[num], wk = weeklies[num] || {};
+    const wks = WEEKS.map((w, i) => { const s = statusOf(wk[w], sc[w]);
+      return `<span class="wkm ${s.k}" title="${i + 1}주 ${s.t}">${i + 1}</span>`; }).join('');
     const s1 = statusOf(sh, sc.sheetDue), s2 = statusOf(es, sc.essayDue);
     if(sh?.submittedAt) n.sheet++; if(es?.submittedAt) n.essay++;
     const edited = sh?.source === 'paper' && sh.ocr && sheetDiff(sh.ocr, sh.data);
@@ -81,6 +84,7 @@ function vTClass(){
       <td class="c">${num}</td><td class="nm">${esc(roster[num].name)}</td>
       <td class="bk">${b ? `${esc(b.title)}${b.fixed ? ' <span class="tag paper">고침</span>' : ''}<div class="au">${esc(b.author)}</div>${other}` : (sh?.data?.title ? `${esc(sh.data.title)}<div class="au">활동지에 적은 책</div>` : '<span class="muted">—</span>')}</td>
       <td>${stTag(s1, sh)}${edited ? `<span class="tag edit">${sh.updatedBy === 'student' ? '학생이 고침' : '고침'}</span>` : ''}</td>
+      <td class="wks">${wks}</td>
       <td>${sc.essayOpen || es ? stTag(s2, es) : '<span class="muted">—</span>'}</td>
       <td class="tm">${kTime(sh?.updatedAt || es?.updatedAt || '')}</td></tr>`;
   }).join('');
@@ -88,7 +92,8 @@ function vTClass(){
     <div class="head"><h1>${CLS_LABEL(S.cls)}반 <span class="muted">${ids.length}명</span></h1>
       <div class="sum"><span>활동지 <b>${n.sheet}</b>/${ids.length}</span><span>소감문 <b>${n.essay}</b>/${ids.length}</span>
       <button class="btn ghost" data-act="export">엑셀로 내려받기</button></div></div>
-    <div class="tbl"><table class="list"><tr><th>학번</th><th>이름</th><th>책</th><th>활동지 (1~2차시)</th><th>최종 소감문</th><th>마지막 저장</th></tr>${rows}</table></div>
+    <div class="tbl"><table class="list"><tr><th>학번</th><th>이름</th><th>책</th><th>활동지 (1~2차시)</th><th>주간 기록</th><th>최종 소감문</th><th>마지막 저장</th></tr>${rows}</table></div>
+    <p class="small">주간 기록 칸 — <span class="wkm done">1</span>제출 <span class="wkm late">1</span>늦게 제출 <span class="wkm draft">1</span>작성 중 <span class="wkm none">1</span>미제출</p>
   </main>`;
 }
 
@@ -111,6 +116,17 @@ function vTStudent(){
       <div class="bar"><label class="chk"><input type="checkbox" id="t-paper"${sh?.source === 'paper' ? ' checked' : ''}> 종이로 받음</label>
         <label class="chk"><input type="date" id="t-subdate" value="${esc(dateOf(sh?.submittedAt))}"> 제출일</label>
         <button class="btn" data-act="t-save-sheet">저장</button></div></div>
+    <div class="card"><h2>${WEEK_TITLE}</h2>
+      ${WEEKS.map((w, i) => { const rec = (S.t.weeklies[num] || {})[w];
+        const changed = rec?.ocr && weekDiff(rec.ocr, rec.data);
+        return `<section class="wk" data-w="${w}"><div class="head"><h3>${i + 1}주${sc[w] ? ` <span class="muted">${kDate(sc[w])}</span>` : ''}</h3>
+            <div>${stTag(statusOf(rec, sc[w]), rec)}${changed ? `<span class="tag edit">${rec.updatedBy === 'student' ? '학생이 고침' : '고침'}</span>` : ''}</div></div>
+          ${rec?.memo ? `<div class="note">판독 메모 — ${esc(rec.memo)}</div>` : ''}
+          ${changed ? `<details class="ref"><summary>처음 판독한 내용 보기 (지금과 다름)</summary>${weekForm(rec.ocr).replace(/<(input|textarea)/g, '<$1 disabled')}</details>` : ''}
+          <div class="wkf">${weekForm(rec?.data)}</div>
+          <div class="bar"><label class="chk"><input type="checkbox" class="t-wpaper"${rec?.source === 'paper' ? ' checked' : ''}> 종이로 받음</label>
+            <label class="chk"><input type="date" class="t-wdate" value="${esc(dateOf(rec?.submittedAt))}"> 제출일</label>
+            <button class="btn" data-act="t-save-week">저장</button></div></section>`; }).join('')}</div>
     <div class="card"><div class="head"><h2>최종 소감문</h2><div>${es ? stTag(statusOf(es, sc.essayDue), es) : ''}</div></div>
       <textarea id="essay" rows="10">${esc(es?.text || '')}</textarea>
       <div class="bar"><span class="small"><span id="cnt">${(es?.text || '').length}</span>자</span>
@@ -124,7 +140,9 @@ function exportCSV(){
   const { roster, books, sheets, essays, sc } = S.t;
   const head = ['학번', '이름', '책 제목', '지은이', '활동지 상태', '활동지 제출일', '종이', '관심 분야', '고른 이유', '기대하는 것',
     '목차1', '이유1', '목차2', '이유2', '1주 범위', '1주 실제', '1주 달성', '2주 범위', '3주 범위', '4주 범위',
-    '읽은 부분', '장 제목', '느낀 점', '기억에 남는 문장', '쪽', '소감문 상태', '소감문 제출일', '소감문'];
+    '읽은 부분', '장 제목', '느낀 점', '기억에 남는 문장', '쪽',
+    ...WEEKS.flatMap((w, i) => ['상태', '제출일', '읽은 부분', '장 제목', '느낀 점', '기억에 남는 문장', '쪽', '이유'].map(h => `${i + 1}주 ${h}`)),
+    '소감문 상태', '소감문 제출일', '소감문'];
   const lines = [head];
   for(const num of Object.keys(roster).filter(k => /^\d+$/.test(k)).sort()){
     const b = books[num] || {}, sh = sheets[num], es = essays[num], d = fillSheet(sh?.data);
@@ -132,6 +150,9 @@ function exportCSV(){
       sh?.source === 'paper' ? '종이' : '', d.field, d.why, d.expect, d.toc[0][0], d.toc[0][1], d.toc[1][0], d.toc[1][1],
       d.plan[0][0], d.plan[0][1], d.plan[0][2], d.plan[1][0], d.plan[2][0], d.plan[3][0],
       (d.readFrom || d.readTo) ? `${d.readFrom}~${d.readTo}쪽` : '', d.chapter, d.feel, d.quote, d.quotePage,
+      ...WEEKS.flatMap(w => { const r = (S.t.weeklies[num] || {})[w], x = fillWeek(r?.data);
+        return [statusOf(r, sc[w]).t, dateOf(r?.submittedAt), (x.readFrom || x.readTo) ? `${x.readFrom}~${x.readTo}쪽` : '',
+                x.chapter, x.feel, x.quote, x.quotePage, x.why]; }),
       statusOf(es, sc.essayDue).t, dateOf(es?.submittedAt), es?.text || '']);
   }
   const csv = '﻿' + lines.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');

@@ -32,12 +32,24 @@ const Store = {
 
   sheets:  cid => get(`${R(cid)}/sheet`).then(v => v || {}),
   sheet:   (cid, num) => get(`${R(cid)}/sheet/${num}`),
+  weeklies: cid => get(`${R(cid)}/weekly`).then(v => v || {}),
+  weekly:  (cid, num) => get(`${R(cid)}/weekly/${num}`).then(v => v || {}),
   essays:  cid => get(`${R(cid)}/essay`).then(v => v || {}),
   essay:   (cid, num) => get(`${R(cid)}/essay/${num}`),
 
   /* 활동지 저장 — by: 'student' | 'teacher'. submit 이면 제출 시각을 처음 한 번만 남깁니다 */
   async saveSheet(cid, num, data, by, submit){
     const ref = db.ref(`${R(cid)}/sheet/${num}`);
+    const old = (await ref.get()).val() || {};
+    const now = new Date().toISOString();
+    const rec = Object.assign({}, old, { data, updatedAt: now, updatedBy: by });
+    if(!old.source) rec.source = 'web';
+    if(submit && !old.submittedAt) rec.submittedAt = now;
+    await ref.set(rec);
+    return rec;
+  },
+  async saveWeek(cid, num, w, data, by, submit){
+    const ref = db.ref(`${R(cid)}/weekly/${num}/${w}`);
     const old = (await ref.get()).val() || {};
     const now = new Date().toISOString();
     const rec = Object.assign({}, old, { data, updatedAt: now, updatedBy: by });

@@ -42,7 +42,8 @@ function bookCard(b){
 function scheduleList(sc){
   const rows = [
     ['책 대여일', sc.rent], ['1차시', sc.s1], ['2차시', sc.s2],
-    ['활동지 제출', sc.sheetDue], ['책 반납일 — 이날까지 다 읽기', sc.returnDate], ['최종 소감문 완성', sc.essayDue],
+    ['활동지 제출', sc.sheetDue], ...WEEKS.map((w, i) => [`${i + 1}주 독서 기록`, sc[w]]),
+    ['책 반납일 — 이날까지 다 읽기', sc.returnDate], ['최종 소감문 완성', sc.essayDue],
   ].filter(r => r[1]);
   const t = today();
   return `<ul class="sched">${rows.map(([k, d]) => `<li class="${d < t ? 'past' : ''}">
@@ -54,9 +55,12 @@ function stTag(st, rec){
 }
 
 function vHome(){
-  const { sc, book, sheet, essay } = S.d;
+  const { sc, book, sheet, essay, weekly } = S.d;
   const ss_ = statusOf(sheet, sc.sheetDue), es = statusOf(essay, sc.essayDue);
+  const nWk = WEEKS.filter(w => weekly[w]?.submittedAt).length;
+  const wNext = WEEKS.find(w => sc[w] && !weekly[w]?.submittedAt);   // 날짜가 정해진 주 중 아직 안 낸 첫 주
   const next = !sheet?.submittedAt ? ['활동지 제출', sc.sheetDue]
+             : wNext ? [`${wNext[1]}주 독서 기록`, sc[wNext]]
              : !sc.essayOpen ? ['책 끝까지 읽기 (반납일)', sc.returnDate]
              : !essay?.submittedAt ? ['최종 소감문', sc.essayDue] : null;
   return topbar() + `<main class="wrap">
@@ -66,7 +70,10 @@ function vHome(){
     <div class="tasks">
       <button class="card task" data-act="open-sheet"><div class="tt">① ${SHEET_TITLE}</div>
         <div>${stTag(ss_, sheet)}</div><div class="tm">${sheet?.updatedAt ? '마지막 저장 ' + kTime(sheet.updatedAt) : '아직 없음'}</div></button>
-      <button class="card task" data-act="open-essay"><div class="tt">② 최종 소감문</div>
+      <button class="card task" data-act="open-week"><div class="tt">② ${WEEK_TITLE}</div>
+        <div><span class="tag ${nWk === 4 ? 'done' : nWk ? 'draft' : 'none'}">${nWk}/4주 제출</span></div>
+        <div class="tm">${wNext ? `${wNext[1]}주 ${kDate(sc[wNext])}` : '1~4주'}</div></button>
+      <button class="card task" data-act="open-essay"><div class="tt">③ 최종 소감문</div>
         <div>${sc.essayOpen ? stTag(es, essay) : '<span class="tag wait">준비 중</span>'}</div>
         <div class="tm">${kDate(sc.essayDue)}까지</div></button>
     </div>
@@ -91,6 +98,24 @@ function vSheet(){
   </main>`;
 }
 
+function vWeek(){
+  const { sc, weekly } = S.d;
+  return topbar() + `<main class="wrap">
+    <button class="link back" data-act="home">← 홈</button>
+    <div class="head"><h1>${WEEK_TITLE}</h1><span class="small">${WEEKS.filter(w => weekly[w]?.submittedAt).length}/4주 제출</span></div>
+    <p class="hint">매주 읽은 만큼 씁니다. 활동지 ⑤ 독서 계획의 1주~4주와 같은 주입니다.</p>
+    ${WEEKS.map((w, i) => { const rec = weekly[w];
+      return `<section class="card wk" data-w="${w}">
+        <div class="head"><h2>${i + 1}주${sc[w] ? ` <span class="muted">${kDate(sc[w])}</span>` : ''}</h2><div>${stTag(statusOf(rec, sc[w]), rec)}</div></div>
+        ${rec?.source === 'paper' ? '<div class="note">종이로 낸 기록을 선생님이 옮겨 적었습니다. 틀리게 옮긴 곳이 있으면 고친 뒤 저장하세요.</div>' : ''}
+        <div class="wkf">${weekForm(rec?.data)}</div>
+        <div class="bar">${rec?.submittedAt
+          ? `<span class="small">제출 ${kTime(rec.submittedAt)}</span><button class="btn" data-act="save-week">고친 내용 저장</button>`
+          : `<button class="btn ghost" data-act="save-week">임시 저장</button><button class="btn" data-act="submit-week">제출</button>`}</div>
+      </section>`; }).join('')}
+  </main>`;
+}
+
 function vEssay(){
   const { sc, essay } = S.d;
   if(!sc.essayOpen) return topbar() + `<main class="wrap"><button class="link back" data-act="home">← 홈</button>
@@ -98,13 +123,15 @@ function vEssay(){
     <p class="small">완성일 ${kDate(sc.essayDue)}</p></div></main>`;
   const st = statusOf(essay, sc.essayDue);
   const s = S.d.sheet?.data || {};
+  const wq = WEEKS.map((w, i) => [i + 1, S.d.weekly[w]?.data]).filter(([, d]) => d?.quote);
   return topbar() + `<main class="wrap">
     <button class="link back" data-act="home">← 홈</button>
     <div class="head"><h1>최종 소감문</h1><div>${stTag(st, essay)}</div></div>
     <p class="small">${kDate(sc.essayDue)}까지 · ${dday(sc.essayDue)}</p>
-    ${(s.feel || s.quote) ? `<details class="card ref"><summary>내 활동지 다시 보기</summary>
+    ${(s.feel || s.quote || wq.length) ? `<details class="card ref"><summary>내 활동지 · 주간 기록 다시 보기</summary>
       ${s.feel ? `<p><b>읽으면서 느낀 점</b><br>${nl2br(s.feel)}</p>` : ''}
-      ${s.quote ? `<p><b>기억에 남는 문장</b> (${esc(s.quotePage)}쪽)<br>${nl2br(s.quote)}</p>` : ''}</details>` : ''}
+      ${s.quote ? `<p><b>기억에 남는 문장</b> (${esc(s.quotePage)}쪽)<br>${nl2br(s.quote)}</p>` : ''}
+      ${wq.map(([n, d]) => `<p><b>${n}주 기억에 남는 문장</b> (${esc(d.quotePage)}쪽)<br>${nl2br(d.quote)}${d.why ? `<br><span class="small">${nl2br(d.why)}</span>` : ''}</p>`).join('')}</details>` : ''}
     <textarea id="essay" rows="16" placeholder="책을 다 읽고 난 뒤의 생각을 씁니다.">${esc(essay?.text || '')}</textarea>
     <div class="count"><span id="cnt">${(essay?.text || '').length}</span>자</div>
     <div class="bar">${essay?.submittedAt

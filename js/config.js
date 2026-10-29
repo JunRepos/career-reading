@@ -4,6 +4,7 @@
    이 사이트가 저장하는 자리 — aiactivity/submissions/{반}/reading/…
      schedule          반별 일정 (대여일 · 1·2차시 · 활동지 마감 · 반납일 · 최종 소감문 완성일 · 소감문 열기)
      sheet/{학번}       1~2차시 활동지  { data, ocr, source:'paper'|'web', submittedAt, updatedAt, updatedBy }
+     weekly/{학번}/w1~w4 주간 독서 기록 { data, ocr, source:'paper'|'web', submittedAt, updatedAt, updatedBy }
      essay/{학번}       최종 소감문     { text, submittedAt, updatedAt, updatedBy }
      bookFix/{학번}     책을 바꾼 학생  { title, author, cover, updatedAt, updatedBy }
      rental/{학번}      대여 도서 목록  { st:'대여'|'결석'|'대여 안 함'|'미정', memo, check, rentDate, updatedAt, updatedBy }
@@ -34,6 +35,7 @@ const DEFAULT_SCHEDULE = {
   s1:         '2026-10-21',
   s2:         '',
   sheetDue:   '',
+  w1: '', w2: '', w3: '', w4: '',                              // 주간 독서 기록 1~4주를 쓰는 날
   returnDate: '2026-11-24',
   essayDue:   '2026-12-01',
   essayOpen:  false,

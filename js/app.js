@@ -3,7 +3,7 @@
 const S = { view: 'login', me: null, d: null, t: null, cls: CLASSES[0], stu: null, openSched: false, tview: 'status' };
 
 function render(){
-  const v = { login: vLogin, changepw: vChangePw, tlogin: vTLogin, home: vHome, sheet: vSheet, essay: vEssay,
+  const v = { login: vLogin, changepw: vChangePw, tlogin: vTLogin, home: vHome, sheet: vSheet, week: vWeek, essay: vEssay,
               tclass: vTClass, tstudent: vTStudent }[S.view] || vLogin;
   document.getElementById('root').innerHTML = v();
   window.scrollTo(0, 0);
@@ -12,13 +12,14 @@ function go(view){ S.view = view; render(); }
 
 async function loadMe(){
   const { cid, num } = S.me;
-  const [sc, books, sheet, essay] = await Promise.all([Store.schedule(cid), Store.books(cid), Store.sheet(cid, num), Store.essay(cid, num)]);
-  S.d = { sc, book: books[num] || null, sheet, essay };
+  const [sc, books, sheet, essay, weekly] = await Promise.all([Store.schedule(cid), Store.books(cid), Store.sheet(cid, num), Store.essay(cid, num), Store.weekly(cid, num)]);
+  S.d = { sc, book: books[num] || null, sheet, essay, weekly };
 }
 async function loadClass(){
   const c = S.cls;
-  const [sc, roster, books, sheets, essays, rental] = await Promise.all([Store.schedule(c), Store.roster(c), Store.books(c), Store.sheets(c), Store.essays(c), Store.rental(c)]);
-  S.t = { sc, roster, books, sheets, essays, rental };
+  const [sc, roster, books, sheets, essays, rental, weeklies] = await Promise.all([Store.schedule(c), Store.roster(c), Store.books(c),
+    Store.sheets(c), Store.essays(c), Store.rental(c), Store.weeklies(c)]);
+  S.t = { sc, roster, books, sheets, essays, rental, weeklies };
 }
 
 async function busy(btn, fn){
@@ -71,7 +72,10 @@ const ACT = {
 
   /* ── 학생 ── */
   'open-sheet': () => go('sheet'),
+  'open-week':  () => go('week'),
   'open-essay': () => go('essay'),
+  async 'save-week'(btn){ await saveMyWeek(btn, false); },
+  async 'submit-week'(btn){ await saveMyWeek(btn, true); },
   async 'save-sheet'(btn){ await saveMySheet(btn, false); },
   async 'submit-sheet'(btn){ await saveMySheet(btn, true); },
   async 'save-essay'(btn){ await saveMyEssay(btn, false); },
@@ -135,6 +139,20 @@ const ACT = {
       await ref.set(rec); S.t.sheets[S.stu] = rec; toast('저장했습니다'); render();
     });
   },
+  async 't-save-week'(btn){
+    const box = btn.closest('[data-w]'), w = box.dataset.w;
+    const data = readWeek(box.querySelector('.wkf'));
+    const paper = box.querySelector('.t-wpaper').checked, day = box.querySelector('.t-wdate').value;
+    await busy(btn, async () => {
+      const ref = db.ref(`aiactivity/submissions/${S.cls}/reading/weekly/${S.stu}/${w}`);
+      const old = (await ref.get()).val() || {};
+      const rec = Object.assign({}, old, { data, source: paper ? 'paper' : (old.source || 'web'),
+        updatedAt: new Date().toISOString(), updatedBy: 'teacher' });
+      if(day) rec.submittedAt = new Date(day + 'T12:00:00+09:00').toISOString(); else delete rec.submittedAt;
+      await ref.set(rec); (S.t.weeklies[S.stu] = S.t.weeklies[S.stu] || {})[w] = rec;
+      toast(`${w[1]}주 기록을 저장했습니다`); render(); document.querySelector(`[data-w=${w}]`)?.scrollIntoView();
+    });
+  },
   async 't-save-essay'(btn){
     const text = document.getElementById('essay').value, day = document.getElementById('t-esdate').value;
     await busy(btn, async () => {
@@ -156,6 +174,15 @@ async function saveMySheet(btn, submit){
   if(submit && !confirm('제출할까요? 제출한 뒤에도 고칠 수 있습니다.')) return;
   const data = readSheet(document.getElementById('form'));
   await busy(btn, async () => { S.d.sheet = await Store.saveSheet(S.me.cid, S.me.num, data, 'student', submit); toast(submit ? '제출했습니다' : '저장했습니다'); render(); });
+}
+async function saveMyWeek(btn, submit){
+  const box = btn.closest('[data-w]'), w = box.dataset.w;
+  if(submit && !confirm(`${w[1]}주 기록을 제출할까요? 제출한 뒤에도 고칠 수 있습니다.`)) return;
+  const data = readWeek(box.querySelector('.wkf'));
+  await busy(btn, async () => {
+    S.d.weekly[w] = await Store.saveWeek(S.me.cid, S.me.num, w, data, 'student', submit);
+    toast(submit ? '제출했습니다' : '저장했습니다'); render(); document.querySelector(`[data-w=${w}]`)?.scrollIntoView();
+  });
 }
 async function saveMyEssay(btn, submit){
   if(submit && !confirm('제출할까요? 제출한 뒤에도 고칠 수 있습니다.')) return;
