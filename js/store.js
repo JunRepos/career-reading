@@ -27,6 +27,9 @@ const Store = {
   },
   saveBook: (cid, num, b) => db.ref(`${R(cid)}/bookFix/${num}`).set(b),
 
+  rental:     cid => get(`${R(cid)}/rental`).then(v => v || {}),
+  saveRental: (cid, num, r) => db.ref(`${R(cid)}/rental/${num}`).set(r),
+
   sheets:  cid => get(`${R(cid)}/sheet`).then(v => v || {}),
   sheet:   (cid, num) => get(`${R(cid)}/sheet/${num}`),
   essays:  cid => get(`${R(cid)}/essay`).then(v => v || {}),
@@ -53,6 +56,12 @@ const Store = {
     return rec;
   },
 };
+
+/* 선생님이 책을 고칠 때 — 제목이 바뀌면 9월 책 표지가 남지 않게 표지를 비웁니다 */
+function fixedBook(old, title, author){
+  return { title, author, cover: title === (old?.title || '') ? (old?.cover || '') : '',
+           updatedAt: new Date().toISOString(), updatedBy: 'teacher' };
+}
 
 /* 상태 — 미제출 · 제출 · 늦게 제출 (늦은 제출도 받습니다. 표시만 다릅니다) */
 function statusOf(rec, due){

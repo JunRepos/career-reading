@@ -5,7 +5,9 @@
      schedule          반별 일정 (대여일 · 1·2차시 · 활동지 마감 · 반납일 · 최종 소감문 완성일 · 소감문 열기)
      sheet/{학번}       1~2차시 활동지  { data, ocr, source:'paper'|'web', submittedAt, updatedAt, updatedBy }
      essay/{학번}       최종 소감문     { text, submittedAt, updatedAt, updatedBy }
-     bookFix/{학번}     책을 바꾼 학생  { title, author }
+     bookFix/{학번}     책을 바꾼 학생  { title, author, cover, updatedAt, updatedBy }
+     rental/{학번}      대여 도서 목록  { st:'대여'|'결석'|'대여 안 함'|'미정', memo, check, rentDate, updatedAt, updatedBy }
+                        check 는 종이 판독이 확실하지 않은 줄 — 선생님이 그 줄을 저장하면 지워집니다
    이미 쓰기가 허용된 자리라 데이터베이스 규칙을 바꾸지 않아도 됩니다.
    수업앱은 이 아래에서 정해진 이름(customActivities · activityOpen · plan …)만 읽으므로 서로 부딪히지 않습니다. */
 
@@ -24,6 +26,7 @@ const CLS_LABEL = cid => cid.replace('career-', '');          // 'career-2-3' �
 const CLS_OF = num => (/^20[1-6]\d\d$/.test(num) ? 'career-2-' + num[2] : null);  // 20321 → career-2-3
 
 const BOOK_ACT = 'actCareerRead01';                            // 9월에 책을 고른 활동
+const RENT_ST = ['', '대여', '결석', '대여 안 함', '미정'];      // 도서 목록의 대여 칸
 
 // 일정의 처음 값 — 선생님이 반마다 고칩니다
 const DEFAULT_SCHEDULE = {

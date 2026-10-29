@@ -1,6 +1,6 @@
 /* app.js — 화면 전환과 버튼 처리 */
 
-const S = { view: 'login', me: null, d: null, t: null, cls: CLASSES[0], stu: null, openSched: false };
+const S = { view: 'login', me: null, d: null, t: null, cls: CLASSES[0], stu: null, openSched: false, tview: 'status' };
 
 function render(){
   const v = { login: vLogin, changepw: vChangePw, tlogin: vTLogin, home: vHome, sheet: vSheet, essay: vEssay,
@@ -17,8 +17,8 @@ async function loadMe(){
 }
 async function loadClass(){
   const c = S.cls;
-  const [sc, roster, books, sheets, essays] = await Promise.all([Store.schedule(c), Store.roster(c), Store.books(c), Store.sheets(c), Store.essays(c)]);
-  S.t = { sc, roster, books, sheets, essays };
+  const [sc, roster, books, sheets, essays, rental] = await Promise.all([Store.schedule(c), Store.roster(c), Store.books(c), Store.sheets(c), Store.essays(c), Store.rental(c)]);
+  S.t = { sc, roster, books, sheets, essays, rental };
 }
 
 async function busy(btn, fn){
@@ -92,9 +92,36 @@ const ACT = {
   },
   export: () => exportCSV(),
   async 'save-book'(btn){
-    const b = { title: document.getElementById('b-title').value.trim(), author: document.getElementById('b-author').value.trim() };
-    if(!b.title){ toast('책 제목을 넣어 주세요'); return; }
+    const title = document.getElementById('b-title').value.trim(), author = document.getElementById('b-author').value.trim();
+    if(!title){ toast('책 제목을 넣어 주세요'); return; }
+    const b = fixedBook(S.t.books[S.stu], title, author);
     await busy(btn, async () => { await Store.saveBook(S.cls, S.stu, b); S.t.books[S.stu] = Object.assign({}, S.t.books[S.stu], b, { fixed: true }); toast('책을 고쳤습니다'); });
+  },
+  tview(btn){ S.tview = btn.dataset.v; render(); },
+  'print-list': () => window.print(),
+  /* 도서 목록 — 바뀐 줄만 저장합니다. 책이 바뀌면 학생 화면의 '내 책'도 바뀝니다 */
+  async 'save-list'(btn){
+    const todo = [];
+    document.querySelectorAll('tr[data-row]').forEach(tr => {
+      const num = tr.dataset.row, v = {};
+      tr.querySelectorAll('[data-f]').forEach(el => { v[el.dataset.f] = el.value.trim(); });
+      const b = S.t.books[num] || {}, r = S.t.rental[num] || {};
+      const book = !!v.title && (v.title !== (b.title || '') || v.author !== (b.author || ''));
+      if(book || v.st !== (r.st || '') || v.memo !== (r.memo || '')) todo.push({ num, v, book });
+    });
+    if(!todo.length){ toast('바뀐 줄이 없습니다'); return; }
+    await busy(btn, async () => {
+      for(const { num, v, book } of todo){
+        if(book){
+          const nb = fixedBook(S.t.books[num], v.title, v.author);
+          await Store.saveBook(S.cls, num, nb); S.t.books[num] = Object.assign({}, S.t.books[num], nb, { fixed: true });
+        }
+        const old = S.t.rental[num] || {};
+        const nr = { st: v.st, memo: v.memo, rentDate: old.rentDate || '', updatedAt: new Date().toISOString(), updatedBy: 'teacher' };
+        await Store.saveRental(S.cls, num, nr); S.t.rental[num] = nr;
+      }
+      toast(`${todo.length}명 저장했습니다`); render();
+    });
   },
   async 't-save-sheet'(btn){
     const data = readSheet(document.getElementById('form'));

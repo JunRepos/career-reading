@@ -26,7 +26,45 @@ function schedEditor(sc){
       <button class="btn" data-act="sched-save">이 반 저장</button></div></details>`;
 }
 
+function viewTabs(){
+  return `<nav class="tabs sub">${[['status', '제출 현황'], ['books', '도서 목록']].map(([k, l]) =>
+    `<button class="${S.tview === k ? 'on' : ''}" data-act="tview" data-v="${k}">${l}</button>`).join('')}</nav>`;
+}
+
+/* 도서 목록 — 대여 상태 · 책 · 지은이 · 메모를 표에서 바로 고칩니다. 인쇄하면 대여 도서 목록 출력물 모양 */
+function vTBooks(){
+  const { sc, roster, books, rental } = S.t;
+  const ids = Object.keys(roster).filter(k => /^\d+$/.test(k)).sort();
+  const cnt = {};
+  const rows = ids.map(num => {
+    const b = books[num] || {}, r = rental[num] || {};
+    cnt[r.st || '빈칸'] = (cnt[r.st || '빈칸'] || 0) + 1;
+    return `<tr data-row="${num}"${r.check ? ' class="check"' : ''}>
+      <td class="c">${num}</td><td class="nm">${esc(roster[num].name)}${r.check ? '<div><span class="tag edit">확인 필요</span></div>' : ''}</td>
+      <td><select data-f="st" aria-label="대여">${RENT_ST.map(s => `<option value="${s}"${s === (r.st || '') ? ' selected' : ''}>${s || '—'}</option>`).join('')}</select></td>
+      <td><input data-f="title" value="${esc(b.title || '')}" aria-label="책 제목"></td>
+      <td><input data-f="author" value="${esc(b.author || '')}" aria-label="지은이"></td>
+      <td><input data-f="memo" value="${esc(r.memo || '')}" aria-label="메모"></td></tr>`;
+  }).join('');
+  const sum = ['대여', '결석', '대여 안 함', '미정', '빈칸'].filter(k => cnt[k]).map(k => `<span>${k} <b>${cnt[k]}</b></span>`).join('');
+  const prow = ids.map(num => {
+    const b = books[num] || {}, st = rental[num]?.st;
+    return `<tr><td>${num}</td><td>${esc(roster[num].name)}</td><td>${esc(b.title || '')}${st && st !== '대여' ? ` (${esc(st)})` : ''}</td><td>${esc(b.author || '')}</td></tr>`;
+  }).join('');
+  return topbar() + `<main class="wrap wide">${clsTabs()}${viewTabs()}
+    <div class="head"><h1>${CLS_LABEL(S.cls)}반 도서 목록 <span class="muted">책 대여일 ${kDate(sc.rent)}</span></h1>
+      <div class="sum">${sum}<button class="btn ghost" data-act="print-list">인쇄</button><button class="btn" data-act="save-list">저장</button></div></div>
+    <p class="hint">칸을 고친 뒤 저장을 누르면 고친 줄만 저장됩니다. 책 제목이나 지은이를 고치면 학생 화면의 '내 책'도 바뀝니다.</p>
+    <div class="tbl"><table class="list edit"><tr><th>학번</th><th>이름</th><th>대여</th><th>책 제목</th><th>지은이</th><th>메모</th></tr>${rows}</table></div>
+    <div class="bar"><button class="btn" data-act="save-list">저장</button></div>
+    <section class="print-only"><div class="pk">진로 독서 프로젝트 · 책 대여일</div><h1>대여 도서 목록</h1>
+      <div class="pd">2학년 ${S.cls.slice(-1)}반 · ${esc((sc.rent || '').replace(/-/g, '. '))}.</div>
+      <table><tr><th>학번</th><th>이름</th><th>책 제목</th><th>지은이</th></tr>${prow}</table></section>
+  </main>`;
+}
+
 function vTClass(){
+  if(S.tview === 'books') return vTBooks();
   const { sc, roster, books, sheets, essays } = S.t;
   const ids = Object.keys(roster).filter(k => /^\d+$/.test(k)).sort();
   let n = { sheet: 0, essay: 0 };
@@ -46,7 +84,7 @@ function vTClass(){
       <td>${sc.essayOpen || es ? stTag(s2, es) : '<span class="muted">—</span>'}</td>
       <td class="tm">${kTime(sh?.updatedAt || es?.updatedAt || '')}</td></tr>`;
   }).join('');
-  return topbar() + `<main class="wrap wide">${clsTabs()}${schedEditor(sc)}
+  return topbar() + `<main class="wrap wide">${clsTabs()}${viewTabs()}${schedEditor(sc)}
     <div class="head"><h1>${CLS_LABEL(S.cls)}반 <span class="muted">${ids.length}명</span></h1>
       <div class="sum"><span>활동지 <b>${n.sheet}</b>/${ids.length}</span><span>소감문 <b>${n.essay}</b>/${ids.length}</span>
       <button class="btn ghost" data-act="export">엑셀로 내려받기</button></div></div>
