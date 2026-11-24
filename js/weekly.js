@@ -1,7 +1,9 @@
-/* weekly.js — 주간 독서 기록 (1~4주). 종이 「주간 독서 기록지」와 같은 칸, 같은 순서
-   1~2차시 활동지 ⑤ 독서 계획의 1주~4주와 같은 주입니다. 주마다 따로 저장 · 제출합니다. */
+/* weekly.js — 주간 독서 기록. 종이 「주간 독서 기록」과 같은 칸, 같은 순서
+   처음에는 1~4주로 네 번 받으려 했지만 실제로는 한 번만 걷었습니다 (2026-11-24). 그래서 한 장만 받습니다.
+   저장 자리는 그대로 weekly/{학번}/w1 — WEEKS 에 w2… 를 다시 넣으면 여러 번 받는 화면으로 돌아가지는 않으니 화면도 함께 고쳐야 합니다. */
 
-const WEEKS = ['w1', 'w2', 'w3', 'w4'];
+const WEEKS = ['w1'];
+const WK = 'w1';
 const WEEK_TITLE = '주간 독서 기록';
 
 function blankWeek(){ return { readFrom: '', readTo: '', chapter: '', feel: '', quote: '', quotePage: '', why: '' }; }

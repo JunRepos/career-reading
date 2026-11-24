@@ -234,7 +234,7 @@ const ACT = {
         updatedAt: new Date().toISOString(), updatedBy: 'teacher' });
       if(day) rec.submittedAt = new Date(day + 'T12:00:00+09:00').toISOString(); else delete rec.submittedAt;
       await ref.set(rec); (S.t.weeklies[S.stu] = S.t.weeklies[S.stu] || {})[w] = rec;
-      toast(`${w[1]}주 기록을 저장했습니다`); render(); document.querySelector(`[data-w=${w}]`)?.scrollIntoView();
+      toast('주간 독서 기록을 저장했습니다'); render(); document.querySelector(`[data-w=${w}]`)?.scrollIntoView();
     });
   },
   async 't-save-doc'(btn){
@@ -266,7 +266,7 @@ async function saveMySheet(btn, submit){
 }
 async function saveMyWeek(btn, submit){
   const box = btn.closest('[data-w]'), w = box.dataset.w;
-  if(submit && !confirm(`${w[1]}주 기록을 제출할까요? 제출한 뒤에도 고칠 수 있습니다.`)) return;
+  if(submit && !confirm('주간 독서 기록을 제출할까요? 제출한 뒤에도 고칠 수 있습니다.')) return;
   const data = readWeek(box.querySelector('.wkf'));
   await busy(btn, async () => {
     S.d.weekly[w] = await Store.saveWeek(S.me.cid, S.me.num, w, data, 'student', submit);
@@ -276,7 +276,8 @@ async function saveMyWeek(btn, submit){
 async function saveMyDoc(btn, submit){
   const key = S.doc, data = readDoc(document.querySelector('[data-doc]'), key);
   if(submit && !docHas(key, data)){ toast('쓴 내용이 없습니다'); return; }
-  if(submit && !confirm('제출할까요? 제출한 뒤에도 고칠 수 있습니다.')) return;
+  const short = submit ? docShort(key, data) : [];
+  if(submit && !confirm((short.length ? `권장 글자 수보다 짧은 칸이 있습니다.\n· ${short.join('\n· ')}\n\n그래도 ` : '') + '제출할까요? 제출한 뒤에도 고칠 수 있습니다.')) return;
   await busy(btn, async () => {
     S.d[key] = await Store.saveDoc(S.me.cid, S.me.num, key, data, 'student', submit);
     ls(draftKey(key), null);
@@ -297,7 +298,10 @@ let draftT = null;
 document.addEventListener('input', e => {
   const el = e.target;
   if(el.tagName === 'TEXTAREA' && el.closest('.doc, .sheet, .wkf, .mat')) grow(el);
-  if(el.tagName === 'TEXTAREA' && el.dataset.dk){ const c = el.nextElementSibling?.querySelector('.cnt'); if(c) c.textContent = el.value.length; }   // 보고서 칸 글자 수
+  if(el.tagName === 'TEXTAREA' && el.dataset.dk){                 // 보고서 칸 글자 수 (권장을 넘기면 초록)
+    const box = el.nextElementSibling, c = box?.querySelector('.cnt');
+    if(c){ c.textContent = el.value.length; box.classList.toggle('ok', +box.dataset.min > 0 && el.value.length >= +box.dataset.min); }
+  }
   // 세특 초안 — 이 브라우저에만 남깁니다
   if(el.classList.contains('se')){
     ls(seKey(el.dataset.n), el.value || null);
