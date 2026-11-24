@@ -284,6 +284,7 @@ let draftT = null;
 document.addEventListener('input', e => {
   const el = e.target;
   if(el.tagName === 'TEXTAREA' && el.closest('.doc, .sheet, .wkf, .mat')) grow(el);
+  if(el.tagName === 'TEXTAREA' && el.dataset.dk){ const c = el.nextElementSibling?.querySelector('.cnt'); if(c) c.textContent = el.value.length; }   // 보고서 칸 글자 수
   // 세특 초안 — 이 브라우저에만 남깁니다
   if(el.classList.contains('se')){
     ls(seKey(el.dataset.n), el.value || null);
