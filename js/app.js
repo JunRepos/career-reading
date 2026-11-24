@@ -164,6 +164,19 @@ const ACT = {
       await ref.set(rec); S.t[bag][num] = rec; renderKeep();
     });
   },
+  /* 취소 — 「종이 받음」만 눌러 둔 것은 기록을 지우고, 쓴 내용이 있으면 내용은 두고 제출만 되돌립니다 */
+  async 'paper-undo'(btn){
+    const key = btn.dataset.k, num = btn.dataset.n, bag = key === 'report' ? 'reports' : 'inquiries';
+    const cur = S.t[bag][num], empty = !docHas(key, cur?.data);
+    if(!confirm(`${S.t.roster[num].name} — ${DOCS[key].title}\n${empty ? '「종이 받음」을 취소할까요?' : '제출을 취소할까요? 쓴 내용은 그대로 남고 「작성 중」으로 돌아갑니다.'}`)) return;
+    await busy(btn, async () => {
+      const ref = db.ref(`aiactivity/submissions/${S.cls}/reading/${key}/${num}`);
+      const old = (await ref.get()).val();
+      if(!old || !docHas(key, old.data)){ await ref.remove(); delete S.t[bag][num]; }
+      else { const rec = Object.assign({}, old); delete rec.submittedAt; await ref.set(rec); S.t[bag][num] = rec; }
+      renderKeep();
+    });
+  },
   async 'pw-reset'(btn){
     const { c, n, name } = btn.dataset;
     if(!confirm(`${name}(${n}) 학생의 비밀번호를 학번으로 초기화할까요?\n진로 수업 사이트 비밀번호도 같이 바뀝니다.`)) return;

@@ -95,12 +95,18 @@ function vTBooks(){
 
 const T_FILTERS = [['all', '전체'], ['noreport', '보고서 안 낸 학생'], ['noreturn', '책 안 낸 학생']];
 
-/* 보고서 칸 — 상태 + 아직 안 냈으면 「종이 받음」 (걷는 자리에서 누르기) */
+/* 보고서 칸 — 상태 + 아직 안 냈으면 「종이 받음」 (걷는 자리에서 누르기)
+   「종이 받음」만 눌러 둔 칸은 채워진 단추로 보이고, 다시 누르면 취소됩니다. 내용이 있는 제출은 「제출 취소」(PC) */
 function docCell(key, num, rec, due){
+  const at = `data-k="${key}" data-n="${num}"`;
+  if(rec?.submittedAt && rec.source === 'paper' && !docHas(key, rec.data))
+    return `<button class="btn sm" data-act="paper-undo" ${at} title="누르면 취소">종이 받음 ✓</button>`
+      + (key === 'inquiry' && rec.presented ? '<span class="tag done">발표</span>' : '');
   const tag = rec ? stTag(statusOf(rec, due), rec) : (key === 'report' ? `<span class="m-hide">${stTag(statusOf(null), null)}</span>` : '');
   const pres = key === 'inquiry' && rec?.presented ? '<span class="tag done">발표</span>' : '';
   const got = rec?.submittedAt ? '' : `<button class="btn ghost sm" data-act="paper-got" data-k="${key}" data-n="${num}">종이 받음</button>`;
-  return tag + pres + got;
+  const undo = rec?.submittedAt ? `<button class="btn ghost sm m-hide" data-act="paper-undo" ${at}>제출 취소</button>` : '';
+  return tag + pres + got + undo;
 }
 
 function vTClass(){
