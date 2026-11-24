@@ -123,7 +123,7 @@ function vTClass(){
       ? `<div class="au">활동지에는 「${esc(sh.data.title)}」 <span class="tag edit">다른 책</span></div>` : '';
     const last = [sh, rp, iq, ...WEEKS.map(w => wk[w])].map(x => x?.updatedAt || '').sort().pop();
     return `<tr data-act="stu" data-n="${num}">
-      <td class="c m-hide">${num}</td><td class="nm"><span class="m-only num">${num.slice(-2)}</span>${esc(roster[num].name)}${S.pw[S.cls]?.[num] ? '<div><span class="tag none">비번 요청</span></div>' : ''}</td>
+      <td class="c m-hide">${num}</td><td class="nm"><span class="m-only num">${num.slice(-2)}</span>${esc(roster[num].name)}${S.pw[S.cls]?.[num] ? '<div><span class="tag none">비번 요청</span></div>' : ''}${b?.title ? `<div class="bkm">${esc(b.title)}</div>` : ''}</td>
       <td class="bk m-hide">${b ? `${esc(b.title)}${b.fixed ? ' <span class="tag paper">고침</span>' : ''}<div class="au">${esc(b.author)}</div>${other}` : (sh?.data?.title ? `${esc(sh.data.title)}<div class="au">활동지에 적은 책</div>` : '<span class="muted">—</span>')}</td>
       <td class="m-hide">${stTag(statusOf(sh, sc.sheetDue), sh)}${edited ? `<span class="tag edit">${sh.updatedBy === 'student' ? '학생이 고침' : '고침'}</span>` : ''}</td>
       <td class="wks m-hide">${wks}</td>

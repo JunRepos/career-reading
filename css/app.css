@@ -154,3 +154,12 @@ h3 b{ display:inline-grid; place-items:center; width:24px; height:24px; border-r
   .wrap.wide .head{ margin:2px 0 8px } .wrap.wide .head h1{ font-size:18px } .sum{ gap:10px }
   .tabs{ margin-bottom:10px; gap:5px } .tabs button{ padding:6px 12px; font-size:14px } .tabs.sub button{ padding:5px 10px; font-size:13px }
 }
+
+/* 휴대폰 현황표 — 이름 아래 작은 글씨로 책 제목 (두 줄까지) */
+.bkm{ display:none }
+@media (max-width:700px){
+  .list.st td.nm{ white-space:normal; padding-top:5px; padding-bottom:5px } .list.st th:nth-child(2){ width:47% } .list.st th{ padding-left:2px; padding-right:2px } .list.st td{ padding-left:2px; padding-right:2px } .list.st th:nth-child(8){ width:44px }
+  .list.st .bkm{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin:1px 0 0 24px;
+                 font-size:11px; font-weight:400; color:var(--sub); line-height:1.3 }
+  .list.st .btn.sm{ padding:5px 6px }
+}
