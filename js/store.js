@@ -34,12 +34,12 @@ const Store = {
   sheet:   (cid, num) => get(`${R(cid)}/sheet/${num}`),
   weeklies: cid => get(`${R(cid)}/weekly`).then(v => v || {}),
   weekly:  (cid, num) => get(`${R(cid)}/weekly/${num}`).then(v => v || {}),
-  essays:  cid => get(`${R(cid)}/essay`).then(v => v || {}),
-  essay:   (cid, num) => get(`${R(cid)}/essay/${num}`),
+  docs:    (cid, key) => get(`${R(cid)}/${key}`).then(v => v || {}),      // key: 'report' | 'inquiry'
+  doc:     (cid, num, key) => get(`${R(cid)}/${key}/${num}`),
 
-  /* 활동지 저장 — by: 'student' | 'teacher'. submit 이면 제출 시각을 처음 한 번만 남깁니다 */
-  async saveSheet(cid, num, data, by, submit){
-    const ref = db.ref(`${R(cid)}/sheet/${num}`);
+  /* 저장 — by: 'student' | 'teacher'. submit 이면 제출 시각을 처음 한 번만 남깁니다 */
+  async saveRec(path, data, by, submit){
+    const ref = db.ref(path);
     const old = (await ref.get()).val() || {};
     const now = new Date().toISOString();
     const rec = Object.assign({}, old, { data, updatedAt: now, updatedBy: by });
@@ -48,24 +48,19 @@ const Store = {
     await ref.set(rec);
     return rec;
   },
-  async saveWeek(cid, num, w, data, by, submit){
-    const ref = db.ref(`${R(cid)}/weekly/${num}/${w}`);
-    const old = (await ref.get()).val() || {};
-    const now = new Date().toISOString();
-    const rec = Object.assign({}, old, { data, updatedAt: now, updatedBy: by });
-    if(!old.source) rec.source = 'web';
-    if(submit && !old.submittedAt) rec.submittedAt = now;
-    await ref.set(rec);
-    return rec;
-  },
-  async saveEssay(cid, num, text, by, submit){
-    const ref = db.ref(`${R(cid)}/essay/${num}`);
-    const old = (await ref.get()).val() || {};
-    const now = new Date().toISOString();
-    const rec = Object.assign({}, old, { text, updatedAt: now, updatedBy: by });
-    if(submit && !old.submittedAt) rec.submittedAt = now;
-    await ref.set(rec);
-    return rec;
+  saveSheet(cid, num, data, by, submit){ return this.saveRec(`${R(cid)}/sheet/${num}`, data, by, submit); },
+  saveWeek(cid, num, w, data, by, submit){ return this.saveRec(`${R(cid)}/weekly/${num}/${w}`, data, by, submit); },
+  saveDoc(cid, num, key, data, by, submit){ return this.saveRec(`${R(cid)}/${key}/${num}`, data, by, submit); },
+
+  /* 비밀번호 초기화 요청 */
+  pwReqs:    () => Promise.all(CLASSES.map(c => get(`${R(c)}/pwReset`))).then(a => Object.fromEntries(CLASSES.map((c, i) => [c, a[i] || {}]))),
+  askPwReset: (cid, num, name) => db.ref(`${R(cid)}/pwReset/${num}`).set({ at: new Date().toISOString(), name }),
+  dropPwReq:  (cid, num) => db.ref(`${R(cid)}/pwReset/${num}`).remove(),
+  // 수업앱의 「비번초기화」와 같습니다 — 비밀번호를 학번으로, 처음 들어올 때 새로 정하게
+  async resetPw(cid, num){
+    const salt = newSalt();
+    await db.ref(`students/${cid}/${num}`).update({ passwordHash: await sha256(salt + num), salt, isFirstLogin: true });
+    await this.dropPwReq(cid, num);
   },
 };
 

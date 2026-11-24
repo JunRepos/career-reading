@@ -1,27 +1,43 @@
-/* student.js — 학생 화면: 로그인 · 홈 · 활동지 · 최종 소감문 */
+/* student.js — 학생 화면: 로그인 · 비밀번호 · 홈 · 활동지 · 주간 기록 · 보고서 */
 
 function vLogin(){
   return `<div class="center"><div class="card login">
-    <div class="kicker">진로 독서 프로젝트</div>
-    <h1>책 한 권, <span>끝까지</span></h1>
+    <h1>진로 독서 프로젝트</h1>
     <p class="sub">진로 수업 학번과 비밀번호로 들어갑니다.</p>
     <label>학번<input id="l-num" inputmode="numeric" maxlength="5" placeholder="예) 20101" autocomplete="username"></label>
     <label>비밀번호<input id="l-pw" type="password" autocomplete="current-password"></label>
     <div class="err" id="l-err"></div>
     <button class="btn wide" data-act="login">들어가기</button>
-    <p class="small">비밀번호는 진로 수업 사이트와 같습니다. 잊었으면 선생님께 말해 주세요.</p>
-    <button class="link" data-act="go-tlogin">선생님</button>
+    <p class="small">비밀번호는 진로 수업 사이트와 같습니다. 처음이면 학번입니다.</p>
+    <div class="links"><button class="link" data-act="go-forgot">비밀번호를 잊었어요</button>
+      <button class="link" data-act="go-tlogin">선생님</button></div>
   </div></div>`;
 }
 
+/* 비밀번호 바꾸기 — 처음 들어왔을 때는 꼭, 그 뒤에는 홈에서 원할 때 (이때는 지금 비밀번호를 먼저 확인) */
 function vChangePw(){
+  const free = S.pwFree;
   return `<div class="center"><div class="card login">
     <h1>비밀번호 바꾸기</h1>
-    <p class="sub">처음 들어왔습니다. 새 비밀번호를 정해 주세요. 진로 수업 사이트 비밀번호도 같이 바뀝니다.</p>
+    <p class="sub">${free ? '' : '처음 들어왔습니다. 새 비밀번호를 정해 주세요. '}진로 수업 사이트 비밀번호도 같이 바뀝니다.</p>
+    ${free ? '<label>지금 비밀번호<input id="c-old" type="password" autocomplete="current-password"></label>' : ''}
     <label>새 비밀번호<input id="c-new" type="password" autocomplete="new-password"></label>
     <label>한 번 더<input id="c-con" type="password" autocomplete="new-password"></label>
     <div class="err" id="c-err"></div>
     <button class="btn wide" data-act="changepw">바꾸기</button>
+    ${free ? '<button class="link" data-act="home">돌아가기</button>' : ''}
+  </div></div>`;
+}
+
+function vForgot(){
+  return `<div class="center"><div class="card login">
+    <h1>비밀번호를 잊었어요</h1>
+    ${S.forgotDone ? `<div class="note">선생님께 요청을 보냈습니다.<br>선생님이 초기화하면 비밀번호는 <b>학번</b>이 됩니다. 들어온 뒤 새 비밀번호를 정합니다.</div>`
+      : `<p class="sub">학번을 넣고 요청을 보내면 선생님이 비밀번호를 학번으로 되돌려 줍니다.</p>
+    <label>학번<input id="f-num" inputmode="numeric" maxlength="5" placeholder="예) 20101"></label>
+    <div class="err" id="f-err"></div>
+    <button class="btn wide" data-act="forgot">초기화 요청 보내기</button>`}
+    <button class="link" data-act="go-login">로그인으로 돌아가기</button>
   </div></div>`;
 }
 
@@ -43,7 +59,7 @@ function scheduleList(sc){
   const rows = [
     ['책 대여일', sc.rent], ['1차시', sc.s1], ['2차시', sc.s2],
     ['활동지 제출', sc.sheetDue], ...WEEKS.map((w, i) => [`${i + 1}주 독서 기록`, sc[w]]),
-    ['책 반납일 — 이날까지 다 읽기', sc.returnDate], ['최종 소감문 완성', sc.essayDue],
+    ['책 반납일 — 이날까지 다 읽기', sc.returnDate], ['최종 독서 보고서 마감', sc.essayDue],
   ].filter(r => r[1]);
   const t = today();
   return `<ul class="sched">${rows.map(([k, d]) => `<li class="${d < t ? 'past' : ''}">
@@ -55,30 +71,34 @@ function stTag(st, rec){
 }
 
 function vHome(){
-  const { sc, book, sheet, essay, weekly } = S.d;
-  const ss_ = statusOf(sheet, sc.sheetDue), es = statusOf(essay, sc.essayDue);
+  const { sc, book, sheet, weekly, report, inquiry } = S.d;
   const nWk = WEEKS.filter(w => weekly[w]?.submittedAt).length;
   const wNext = WEEKS.find(w => sc[w] && !weekly[w]?.submittedAt);   // 날짜가 정해진 주 중 아직 안 낸 첫 주
-  const next = !sheet?.submittedAt ? ['활동지 제출', sc.sheetDue]
+  // 반납일부터는 보고서가 먼저입니다
+  const next = (today() >= sc.returnDate) ? (report?.submittedAt ? null : ['최종 독서 보고서', sc.essayDue])
+             : !sheet?.submittedAt ? ['활동지 제출', sc.sheetDue]
              : wNext ? [`${wNext[1]}주 독서 기록`, sc[wNext]]
-             : !sc.essayOpen ? ['책 끝까지 읽기 (반납일)', sc.returnDate]
-             : !essay?.submittedAt ? ['최종 소감문', sc.essayDue] : null;
+             : ['책 반납', sc.returnDate];
+  const last = rec => rec?.updatedAt ? '마지막 저장 ' + kTime(rec.updatedAt) : '아직 없음';
   return topbar() + `<main class="wrap">
     ${bookCard(book)}
     ${next ? `<div class="card next"><div class="kicker">지금 할 일</div><div class="nt">${next[0]}</div>
       <div class="nd">${next[1] ? `${kDate(next[1])}까지 · <b>${dday(next[1])}</b>` : '마감 미정'}</div></div>` : ''}
     <div class="tasks">
-      <button class="card task" data-act="open-sheet"><div class="tt">① ${SHEET_TITLE}</div>
-        <div>${stTag(ss_, sheet)}</div><div class="tm">${sheet?.updatedAt ? '마지막 저장 ' + kTime(sheet.updatedAt) : '아직 없음'}</div></button>
-      <button class="card task" data-act="open-week"><div class="tt">② ${WEEK_TITLE}</div>
+      <button class="card task" data-act="open-doc" data-k="report"><div class="tt">${DOCS.report.title}</div>
+        <div>${stTag(statusOf(report, sc.essayDue), report)}</div><div class="tm">${kDate(sc.essayDue)}까지</div></button>
+      <button class="card task" data-act="open-doc" data-k="inquiry"><div class="tt">${DOCS.inquiry.title}</div>
+        <div>${inquiry ? stTag(statusOf(inquiry, sc.essayDue), inquiry) : '<span class="tag wait">원하는 사람만</span>'}</div>
+        <div class="tm">발표 5분 이내</div></button>
+      <button class="card task" data-act="open-sheet"><div class="tt">${SHEET_TITLE}</div>
+        <div>${stTag(statusOf(sheet, sc.sheetDue), sheet)}</div><div class="tm">${last(sheet)}</div></button>
+      <button class="card task" data-act="open-week"><div class="tt">${WEEK_TITLE}</div>
         <div><span class="tag ${nWk === 4 ? 'done' : nWk ? 'draft' : 'none'}">${nWk}/4주 제출</span></div>
         <div class="tm">${wNext ? `${wNext[1]}주 ${kDate(sc[wNext])}` : '1~4주'}</div></button>
-      <button class="card task" data-act="open-essay"><div class="tt">③ 최종 소감문</div>
-        <div>${sc.essayOpen ? stTag(es, essay) : '<span class="tag wait">준비 중</span>'}</div>
-        <div class="tm">${kDate(sc.essayDue)}까지</div></button>
     </div>
     <div class="card"><h2>우리 반 일정</h2>${scheduleList(sc)}
       <p class="small">마감이 지나도 낼 수 있습니다. 늦게 낸 것으로 표시됩니다.</p></div>
+    <div class="links"><button class="link" data-act="go-changepw">비밀번호 바꾸기</button></div>
   </main>`;
 }
 
@@ -91,7 +111,7 @@ function vSheet(){
     ${rec?.source === 'paper' ? `<div class="note">종이로 낸 활동지를 선생님이 옮겨 적었습니다. 틀리게 옮긴 곳이 있으면 고친 뒤 저장하세요.
       ${rec.data && JSON.stringify(rec.data).includes('[?]') ? '<br><b>[?]</b> 는 글씨를 알아보기 어려웠던 곳입니다.' : ''}</div>` : ''}
     <div id="form">${sheetForm(rec?.data)}</div>
-    <div class="bar">${rec?.submittedAt
+    <div class="bar stick">${rec?.submittedAt
       ? `<span class="small">제출 ${kTime(rec.submittedAt)}${rec.updatedAt !== rec.submittedAt ? ' · 고침 ' + kTime(rec.updatedAt) : ''}</span>
          <button class="btn" data-act="save-sheet">고친 내용 저장</button>`
       : `<button class="btn ghost" data-act="save-sheet">임시 저장</button><button class="btn" data-act="submit-sheet">제출</button>`}</div>
@@ -116,26 +136,32 @@ function vWeek(){
   </main>`;
 }
 
-function vEssay(){
-  const { sc, essay } = S.d;
-  if(!sc.essayOpen) return topbar() + `<main class="wrap"><button class="link back" data-act="home">← 홈</button>
-    <div class="card"><h1>최종 소감문</h1><p>아직 열리지 않았습니다. 선생님이 양식을 열면 여기에서 씁니다.</p>
-    <p class="small">완성일 ${kDate(sc.essayDue)}</p></div></main>`;
-  const st = statusOf(essay, sc.essayDue);
+/* 최종 독서 보고서 · 독서 연계 탐구 보고서 — 같은 화면을 칸만 바꿔 씁니다 */
+function vDoc(){
+  const key = S.doc, spec = DOCS[key], { sc, book } = S.d, rec = S.d[key];
+  const draft = loadDraft(key, rec);
+  const has = docHas(key, rec?.data);
   const s = S.d.sheet?.data || {};
   const wq = WEEKS.map((w, i) => [i + 1, S.d.weekly[w]?.data]).filter(([, d]) => d?.quote);
+  const more = S.d.report?.data?.more;
+  const ref = key === 'report'
+    ? ((s.feel || s.quote || wq.length) ? `<details class="card ref"><summary>내 활동지 · 주간 기록 다시 보기</summary>
+        ${s.feel ? `<p><b>읽으면서 느낀 점</b><br>${nl2br(s.feel)}</p>` : ''}
+        ${s.quote ? `<p><b>기억에 남는 문장</b> (${esc(s.quotePage)}쪽)<br>${nl2br(s.quote)}</p>` : ''}
+        ${wq.map(([n, d]) => `<p><b>${n}주 기억에 남는 문장</b> (${esc(d.quotePage)}쪽)<br>${nl2br(d.quote)}${d.why ? `<br><span class="small">${nl2br(d.why)}</span>` : ''}</p>`).join('')}</details>` : '')
+    : (more ? `<details class="card ref" open><summary>최종 독서 보고서에 쓴 「더 알아보고 싶은 것」</summary><p>${nl2br(more)}</p></details>` : '');
   return topbar() + `<main class="wrap">
     <button class="link back" data-act="home">← 홈</button>
-    <div class="head"><h1>최종 소감문</h1><div>${stTag(st, essay)}</div></div>
-    <p class="small">${kDate(sc.essayDue)}까지 · ${dday(sc.essayDue)}</p>
-    ${(s.feel || s.quote || wq.length) ? `<details class="card ref"><summary>내 활동지 · 주간 기록 다시 보기</summary>
-      ${s.feel ? `<p><b>읽으면서 느낀 점</b><br>${nl2br(s.feel)}</p>` : ''}
-      ${s.quote ? `<p><b>기억에 남는 문장</b> (${esc(s.quotePage)}쪽)<br>${nl2br(s.quote)}</p>` : ''}
-      ${wq.map(([n, d]) => `<p><b>${n}주 기억에 남는 문장</b> (${esc(d.quotePage)}쪽)<br>${nl2br(d.quote)}${d.why ? `<br><span class="small">${nl2br(d.why)}</span>` : ''}</p>`).join('')}</details>` : ''}
-    <textarea id="essay" rows="16" placeholder="책을 다 읽고 난 뒤의 생각을 씁니다.">${esc(essay?.text || '')}</textarea>
-    <div class="count"><span id="cnt">${(essay?.text || '').length}</span>자</div>
-    <div class="bar">${essay?.submittedAt
-      ? `<span class="small">제출 ${kTime(essay.submittedAt)}</span><button class="btn" data-act="save-essay">고친 내용 저장</button>`
-      : `<button class="btn ghost" data-act="save-essay">임시 저장</button><button class="btn" data-act="submit-essay">제출</button>`}</div>
+    <div class="head"><h1>${spec.title}</h1><div>${stTag(statusOf(rec, sc.essayDue), rec)}</div></div>
+    <p class="small">${spec.sub ? spec.sub + ' · ' : ''}${kDate(sc.essayDue)}까지 · ${dday(sc.essayDue)}</p>
+    <div class="bookline">${book ? `<b>${esc(book.title)}</b> <span>${esc(book.author)}</span>` : '고른 책이 없습니다. 선생님께 말해 주세요.'}</div>
+    ${rec?.source === 'paper' ? `<div class="note">${has ? '종이로 낸 보고서를 선생님이 옮겨 적었습니다. 틀리게 옮긴 곳이 있으면 고친 뒤 저장하세요.'
+      : '종이로 낸 것을 선생님이 받았습니다. 여기에 다시 쓰지 않아도 됩니다.'}</div>` : ''}
+    ${draft ? '<div class="note">저장하지 않고 나간 글을 다시 불러왔습니다. 아래에서 저장을 눌러야 선생님께 보입니다.</div>' : ''}
+    ${ref}
+    ${docForm(key, draft || rec?.data)}
+    <div class="bar stick">${rec?.submittedAt
+      ? `<span class="small">제출 ${kTime(rec.submittedAt)}</span><button class="btn" data-act="save-doc">고친 내용 저장</button>`
+      : `<button class="btn ghost" data-act="save-doc">임시 저장</button><button class="btn" data-act="submit-doc">제출</button>`}</div>
   </main>`;
 }

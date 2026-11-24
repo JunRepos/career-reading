@@ -53,3 +53,17 @@ function ss(key, val){                  // sessionStorage — 막혀 있어도 �
     if(val === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, JSON.stringify(val));
   }catch(e){ return null; }
 }
+
+function ls(key, val){                  // localStorage — 쓰던 글 임시 보관 · 세특 초안. 막혀 있어도 사이트는 돌아가야 합니다
+  try{
+    if(val === undefined) return JSON.parse(localStorage.getItem(key) || 'null');
+    if(val === null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(val));
+  }catch(e){ return null; }
+}
+
+// 나이스 바이트 — 한글 3 · 영문·숫자·공백·기호 1 · 줄바꿈 2
+function nbytes(s){
+  let n = 0;
+  for(const c of String(s || '')) n += c === '\n' ? 2 : c.charCodeAt(0) < 128 ? 1 : 3;
+  return n;
+}
