@@ -139,3 +139,18 @@ h3 b{ display:inline-grid; place-items:center; width:24px; height:24px; border-r
 @media (max-width:560px){ .tasks{ grid-template-columns:1fr 1fr } .task{ padding:14px } .task .tt{ font-size:14px } }
 @media print{ main > .card, main > details, main > p, main > nav, .mats{ display:none !important } }
 .doc .read{ align-items:stretch; gap:10px } .doc .read label{ display:flex; flex-direction:column; gap:5px } .doc .read label input{ margin:0 }
+
+/* ── 휴대폰 — 선생님 제출 현황은 이름 · 최종 보고서 · 탐구 보고서 · 반납만, 한 화면에 많이 보이게 (2026-11-24) ── */
+.m-only{ display:none }
+@media (max-width:700px){
+  .m-hide{ display:none !important } .m-only{ display:inline }
+  .tbl.st{ overflow:visible; border-radius:12px }
+  .list.st{ min-width:0; table-layout:fixed }
+  .list.st th{ top:54px; padding:8px 6px; text-align:center; z-index:3 } .list.st th:first-of-type + th, .list.st th:nth-child(2){ text-align:left; padding-left:12px }
+  .list.st td{ padding:3px 6px; height:40px; text-align:center } .list.st td.nm{ text-align:left; padding-left:12px; width:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .list.st th:nth-child(2){ width:34% } .list.st th:nth-child(8){ width:54px }
+  .list.st .num{ display:inline-block; width:20px; color:var(--sub); font-weight:400; font-size:12px; margin-right:4px; font-variant-numeric:tabular-nums }
+  .list.st .tag{ margin:0 1px; padding:3px 7px } .list.st .btn.sm{ margin:0; padding:5px 8px; font-size:12px }
+  .wrap.wide .head{ margin:2px 0 8px } .wrap.wide .head h1{ font-size:18px } .sum{ gap:10px }
+  .tabs{ margin-bottom:10px; gap:5px } .tabs button{ padding:6px 12px; font-size:14px } .tabs.sub button{ padding:5px 10px; font-size:13px }
+}

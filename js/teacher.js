@@ -37,7 +37,7 @@ function pwBanner(){
 
 function shareBox(){
   const base = location.origin + location.pathname;
-  return `<details class="card sced"><summary>🔗 학생에게 보낼 주소</summary>
+  return `<details class="card sced m-hide"><summary>🔗 학생에게 보낼 주소</summary>
     <p class="small">학생은 진로 수업 학번과 비밀번호로 들어옵니다. 아래 주소로 들어오면 로그인한 뒤 바로 그 보고서가 열립니다.</p>
     ${[['최종 독서 보고서', '#report'], ['독서 연계 탐구 보고서', '#inquiry'], ['사이트 첫 화면', '']].map(([l, h]) =>
       `<div class="pwrow"><span><b>${l}</b><br><span class="small url">${esc(base + h)}</span></span>
@@ -46,7 +46,7 @@ function shareBox(){
 
 function schedEditor(sc){
   const f = (k, label) => `<label>${label}<input type="date" data-sc="${k}" value="${esc(sc[k] || '')}"></label>`;
-  return `<details class="card sced"${S.openSched ? ' open' : ''}><summary>📅 ${CLS_LABEL(S.cls)}반 일정 — 반납 ${kDate(sc.returnDate)} · 보고서 ${kDate(sc.essayDue)}</summary>
+  return `<details class="card sced m-hide"${S.openSched ? ' open' : ''}><summary>📅 ${CLS_LABEL(S.cls)}반 일정 — 반납 ${kDate(sc.returnDate)} · 보고서 ${kDate(sc.essayDue)}</summary>
     <div class="scgrid">${f('rent', '책 대여일')}${f('s1', '1차시')}${f('s2', '2차시')}
       ${f('sheetDue', '활동지 제출 마감')}${WEEKS.map((w, i) => f(w, `${i + 1}주 독서 기록`)).join('')}
       ${f('returnDate', '책 반납일')}${f('essayDue', '최종 보고서 마감')}</div>
@@ -99,7 +99,7 @@ const T_FILTERS = [['all', '전체'], ['noreport', '보고서 안 낸 학생'], 
 
 /* 보고서 칸 — 상태 + 아직 안 냈으면 「종이 받음」 (걷는 자리에서 누르기) */
 function docCell(key, num, rec, due){
-  const tag = rec ? stTag(statusOf(rec, due), rec) : (key === 'report' ? stTag(statusOf(null), null) : '');
+  const tag = rec ? stTag(statusOf(rec, due), rec) : (key === 'report' ? `<span class="m-hide">${stTag(statusOf(null), null)}</span>` : '');
   const pres = key === 'inquiry' && rec?.presented ? '<span class="tag done">발표</span>' : '';
   const got = rec?.submittedAt ? '' : `<button class="btn ghost sm" data-act="paper-got" data-k="${key}" data-n="${num}">종이 받음</button>`;
   return tag + pres + got;
@@ -123,26 +123,26 @@ function vTClass(){
       ? `<div class="au">활동지에는 「${esc(sh.data.title)}」 <span class="tag edit">다른 책</span></div>` : '';
     const last = [sh, rp, iq, ...WEEKS.map(w => wk[w])].map(x => x?.updatedAt || '').sort().pop();
     return `<tr data-act="stu" data-n="${num}">
-      <td class="c">${num}</td><td class="nm">${esc(roster[num].name)}${S.pw[S.cls]?.[num] ? '<div><span class="tag none">비번 요청</span></div>' : ''}</td>
-      <td class="bk">${b ? `${esc(b.title)}${b.fixed ? ' <span class="tag paper">고침</span>' : ''}<div class="au">${esc(b.author)}</div>${other}` : (sh?.data?.title ? `${esc(sh.data.title)}<div class="au">활동지에 적은 책</div>` : '<span class="muted">—</span>')}</td>
-      <td>${stTag(statusOf(sh, sc.sheetDue), sh)}${edited ? `<span class="tag edit">${sh.updatedBy === 'student' ? '학생이 고침' : '고침'}</span>` : ''}</td>
-      <td class="wks">${wks}</td>
+      <td class="c m-hide">${num}</td><td class="nm"><span class="m-only num">${num.slice(-2)}</span>${esc(roster[num].name)}${S.pw[S.cls]?.[num] ? '<div><span class="tag none">비번 요청</span></div>' : ''}</td>
+      <td class="bk m-hide">${b ? `${esc(b.title)}${b.fixed ? ' <span class="tag paper">고침</span>' : ''}<div class="au">${esc(b.author)}</div>${other}` : (sh?.data?.title ? `${esc(sh.data.title)}<div class="au">활동지에 적은 책</div>` : '<span class="muted">—</span>')}</td>
+      <td class="m-hide">${stTag(statusOf(sh, sc.sheetDue), sh)}${edited ? `<span class="tag edit">${sh.updatedBy === 'student' ? '학생이 고침' : '고침'}</span>` : ''}</td>
+      <td class="wks m-hide">${wks}</td>
       <td>${docCell('report', num, rp, sc.essayDue)}</td>
       <td>${docCell('inquiry', num, iq, sc.essayDue)}</td>
       <td class="ctr">${retBox(num, r)}</td>
-      <td class="tm">${kTime(last)}</td></tr>`;
+      <td class="tm m-hide">${kTime(last)}</td></tr>`;
   }).join('');
   const n = k => ids.filter(num => S.t[k][num]?.submittedAt).length;
   const fl = T_FILTERS.find(f => f[0] === S.tfilter)[1];
   return topbar() + `<main class="wrap wide">${clsTabs()}${viewTabs()}${pwBanner()}${schedEditor(sc)}${shareBox()}
     <div class="head"><h1>${CLS_LABEL(S.cls)}반 <span class="muted">${ids.length}명</span></h1>
-      <div class="sum"><span>활동지 <b>${n('sheets')}</b>/${ids.length}</span><span>보고서 <b>${n('reports')}</b>/${ids.length}</span>
+      <div class="sum"><span class="m-hide">활동지 <b>${n('sheets')}</b>/${ids.length}</span><span>보고서 <b>${n('reports')}</b>/${ids.length}</span>
       <span>탐구 <b>${n('inquiries')}</b></span><span id="retcnt">${retCount()}</span>
-      <button class="btn ghost" data-act="print-list">인쇄</button><button class="btn ghost" data-act="export">엑셀로 내려받기</button></div></div>
+      <button class="btn ghost m-hide" data-act="print-list">인쇄</button><button class="btn ghost m-hide" data-act="export">엑셀로 내려받기</button></div></div>
     <nav class="tabs sub">${T_FILTERS.map(([k, l]) => `<button class="${S.tfilter === k ? 'on' : ''}" data-act="tfilter" data-v="${k}">${l}</button>`).join('')}</nav>
-    <div class="tbl"><table class="list"><tr><th>학번</th><th>이름</th><th>책</th><th>활동지</th><th>주간 기록</th><th>최종 보고서</th><th>탐구 보고서</th><th>반납</th><th>마지막 저장</th></tr>
-      ${rows || `<tr><td colspan="9" class="muted" style="text-align:center;padding:24px">해당하는 학생이 없습니다.</td></tr>`}</table></div>
-    <p class="small">종이 보고서를 걷으면 「종이 받음」을 누릅니다. 반납 칸은 누르는 대로 저장됩니다. 줄을 누르면 그 학생이 쓴 것을 보고 고칠 수 있습니다.<br>
+    <div class="tbl st"><table class="list st"><tr><th class="m-hide">학번</th><th>이름</th><th class="m-hide">책</th><th class="m-hide">활동지</th><th class="m-hide">주간 기록</th><th>최종 보고서</th><th>탐구 보고서</th><th>반납</th><th class="m-hide">마지막 저장</th></tr>
+      ${rows || `<tr><td colspan="9" class="muted" style="text-align:center;padding:24px;height:auto">해당하는 학생이 없습니다.</td></tr>`}</table></div>
+    <p class="small m-hide">종이 보고서를 걷으면 「종이 받음」을 누릅니다. 반납 칸은 누르는 대로 저장됩니다. 줄을 누르면 그 학생이 쓴 것을 보고 고칠 수 있습니다.<br>
       주간 기록 칸 — <span class="wkm done">1</span>제출 <span class="wkm late">1</span>늦게 제출 <span class="wkm draft">1</span>작성 중 <span class="wkm none">1</span>미제출</p>
     <section class="print-only"><div class="pk">진로 독서 프로젝트</div><h1>${fl}</h1>
       <div class="pd">2학년 ${S.cls.slice(-1)}반 · ${show.length}명 · ${esc(today().replace(/-/g, '. '))}.</div>
