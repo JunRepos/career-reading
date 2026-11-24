@@ -2,7 +2,7 @@
 
 const S = { view: 'login', me: null, d: null, t: null, cls: CLASSES[0], stu: null, openSched: false, tview: 'status', tfilter: 'all',
             doc: 'report', pw: {}, pwFree: false, forgotDone: false,
-            after: ['#report', '#inquiry'].includes(location.hash) ? location.hash.slice(1) : null };   // 주소 끝의 #report · #inquiry → 로그인 뒤 바로 그 보고서
+            after: null };   // 들어오면 언제나 홈부터 (예전 주소 끝의 #report · #inquiry 도 홈으로)
 
 function render(){
   const v = { login: vLogin, changepw: vChangePw, forgot: vForgot, tlogin: vTLogin, home: vHome, sheet: vSheet, week: vWeek, doc: vDoc,

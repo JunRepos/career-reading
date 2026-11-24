@@ -38,10 +38,8 @@ function pwBanner(){
 function shareBox(){
   const base = location.origin + location.pathname;
   return `<details class="card sced m-hide"><summary>🔗 학생에게 보낼 주소</summary>
-    <p class="small">학생은 진로 수업 학번과 비밀번호로 들어옵니다. 아래 주소로 들어오면 로그인한 뒤 바로 그 보고서가 열립니다.</p>
-    ${[['최종 독서 보고서', '#report'], ['독서 연계 탐구 보고서', '#inquiry'], ['사이트 첫 화면', '']].map(([l, h]) =>
-      `<div class="pwrow"><span><b>${l}</b><br><span class="small url">${esc(base + h)}</span></span>
-        <button class="btn ghost sm" data-act="copy" data-text="${esc(base + h)}">주소 복사</button></div>`).join('')}</details>`;
+    <p class="small">학생은 진로 수업 학번과 비밀번호로 들어옵니다. 들어오면 홈 화면(내 책 · 지금 할 일 · 보고서 · 일정)이 먼저 나옵니다.</p>
+    <div class="pwrow"><span class="url">${esc(base)}</span><button class="btn ghost sm" data-act="copy" data-text="${esc(base)}">주소 복사</button></div></details>`;
 }
 
 function schedEditor(sc){
